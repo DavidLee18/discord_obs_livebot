@@ -7,6 +7,23 @@ struct Data(); // User data, which is stored and accessible in all command invoc
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
+async fn get_url(locale: Option<&str>, value: Option<String>) -> Result<String, Error> {
+    let lit_singil = match locale {
+        Some("ko") => env::var("SERVER_SINGIL_KO")?,
+        _ => env::var("SERVER_SINGIL_EN")?,
+    };
+    let lit_cwmc = match locale {
+        Some("ko") => env::var("SERVER_CWMC_KO")?,
+        _ => env::var("SERVER_CWMC_EN")?,
+    };
+    match value {
+        None => Ok(String::from("SERVER_SINGIL_URL")),
+        Some(v) if v == lit_singil => Ok(String::from("SERVER_SINGIL_URL")),
+        Some(v_) if v_ == lit_cwmc => Ok(String::from("SERVER_CWMC_URL")),
+        _ => Err("Invalid server location".into()),
+    }
+}
+
 #[poise::command(
     slash_command,
     name_localized("ko", "정보"),
@@ -14,30 +31,90 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 )]
 async fn info(
     ctx: Context<'_>,
+    #[name_localized("ko", "위치")]
     #[description = "server location"]
     #[description_localized("ko", "서버의 위치입니다")]
     where_: Option<String>,
 ) -> Result<(), Error> {
-    let lit_singil = match ctx.locale() {
-        Some("ko") => env::var("SERVER_SINGIL_KO")?,
-        _ => env::var("SERVER_SINGIL_EN")?,
-    };
-    let lit_cwmc = match ctx.locale() {
-        Some("ko") => env::var("SERVER_CWMC_KO")?,
-        _ => env::var("SERVER_CWMC_EN")?,
-    };
-    let u = where_.unwrap_or_else(|| lit_singil.clone());
-    let loc = if u == lit_singil {
-        "SERVER_SINGIL_URL"
-    } else if u == lit_cwmc {
-        "SERVER_CWMC_URL"
-    } else {
-        return Err("Invalid server location".into());
-    };
-    let location = format!("http://{}:{}", env::var(loc)?, env::var("SERVER_PORT")?);
-    match reqwest::blocking::get(location)?.error_for_status() {
+    let location = format!(
+        "http://{}:{}",
+        env::var(get_url(ctx.locale(), where_).await?)?,
+        env::var("SERVER_PORT")?
+    );
+    match reqwest::get(location).await?.error_for_status() {
         Ok(response) => {
-            let response_text = response.text()?.replace("\\n", "\n");
+            let response_text = response.text().await?.replace("\\n", "\n");
+            ctx.say(response_text).await?;
+            Ok(())
+        }
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[poise::command(
+    slash_command,
+    name_localized("ko", "중단"),
+    description_localized("ko", "OBS에서 방송 송출을 중단합니다")
+)]
+async fn stop(
+    ctx: Context<'_>,
+    #[name_localized("ko", "위치")]
+    #[description = "server location"]
+    #[description_localized("ko", "서버의 위치입니다")]
+    where_: Option<String>,
+) -> Result<(), Error> {
+    let location = format!(
+        "http://{}:{}",
+        env::var(get_url(ctx.locale(), where_).await?)?,
+        env::var("SERVER_PORT")?
+    );
+    match reqwest::Client::new()
+        .delete(location)
+        .send()
+        .await?
+        .error_for_status()
+    {
+        Ok(response) => {
+            let response_text = response.text().await?.replace("\\n", "\n");
+            ctx.say(response_text).await?;
+            Ok(())
+        }
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[poise::command(
+    slash_command,
+    name_localized("ko", "전환"),
+    description_localized("ko", "OBS에서 화면을 전환합니다")
+)]
+async fn switch(
+    ctx: Context<'_>,
+    #[name_localized("ko", "위치")]
+    #[description = "server location"]
+    #[description_localized("ko", "서버의 위치입니다")]
+    where_: Option<String>,
+    #[name_localized("ko", "화면")]
+    #[description = "scene to change into"]
+    #[description_localized("ko", "전환할 화면의 이름입니다")]
+    scene: String,
+) -> Result<(), Error> {
+    let location = format!(
+        "http://{}:{}",
+        env::var(get_url(ctx.locale(), where_).await?)?,
+        env::var("SERVER_PORT")?
+    );
+    match reqwest::Client::new()
+        .post(location)
+        .body(serde_json::to_string(
+            &serde_json::json!({ "scene": scene }),
+        )?)
+        .send()
+        .await?
+        .error_for_status()
+    {
+        Ok(response) => {
+            let response_text = response.text().await?.replace("\\n", "\n");
             ctx.say(response_text).await?;
             Ok(())
         }
@@ -53,7 +130,7 @@ async fn main() -> Result<(), Error> {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![info()],
+            commands: vec![info(), stop(), switch()],
             ..Default::default()
         })
         .setup(|ctx, _, framework| {

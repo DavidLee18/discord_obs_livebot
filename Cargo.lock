@@ -338,10 +338,11 @@ dependencies = [
 
 [[package]]
 name = "discord_obs_livebot"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "poise",
  "reqwest 0.12.25",
+ "serde_json",
  "serenity",
  "tokio",
 ]
