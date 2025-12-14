@@ -2,7 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,65 +15,65 @@ jobs:
     outputs:
       new_tag: ${{ steps.tag_version.outputs.new_tag }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Bump version and push tag
-      id: tag_version
-      uses: mathieudutour/github-tag-action@v6.2
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
   build_linux:
     needs: update_version
     runs-on: ubuntu-latest
     # permissions:
     #   contents: write
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Rust and Cargo
-      # You may pin to the exact commit or the version.
-      # uses: moonrepo/setup-rust@ede6de059f8046a5e236c94046823e2af11ca670
-      uses: moonrepo/setup-rust@v1.2.2
-      with:
-        # Comma-separated list of global binaries to install into Cargo.
-        # bins: # optional
-        # Toggle caching of ~/.cargo/registry and /target/<cache-target> directories.
-        # cache: # optional, default is true
-        # Base branch/ref to save a warmup cache on. Other branches/refs will restore from this base.
-        # cache-base: # optional
-        # Name of the target profile to cache.
-        cache-target: release
-        # Toolchain specification/channel to explicitly install.
-        # channel: # optional
-        # Comma-separated list of additional components to install.
-        # components: # optional
-        # Inherit all toolchain settings from the rust-toolchain.toml file.
-        # inherit-toolchain: # optional, default is false
-        # Comma-separated list of additional targets to install.
-        targets: x86_64-unknown-linux-gnu
-        # Comma-separated list of target folder paths, relative from the repository root.
-        # target-dirs: # optional, default is target
-        # Profile to install. Defaults to "minimal".
-        # profile: # optional
-    - name: Build
-      run: cargo build --release --target x86_64-unknown-linux-gnu
-    - run: mv target/x86_64-unknown-linux-gnu/release/discord_obs_livebot discord_obs_livebot-x86_64-unknown-linux-gnu
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: x86_64-unknown-linux-gnu
-        path: norminette_lsp-x86_64-unknown-linux-gnu
+      - uses: actions/checkout@v4
+      - name: Setup Rust and Cargo
+        # You may pin to the exact commit or the version.
+        # uses: moonrepo/setup-rust@ede6de059f8046a5e236c94046823e2af11ca670
+        uses: moonrepo/setup-rust@v1.2.2
+        with:
+          # Comma-separated list of global binaries to install into Cargo.
+          # bins: # optional
+          # Toggle caching of ~/.cargo/registry and /target/<cache-target> directories.
+          # cache: # optional, default is true
+          # Base branch/ref to save a warmup cache on. Other branches/refs will restore from this base.
+          # cache-base: # optional
+          # Name of the target profile to cache.
+          cache-target: release
+          # Toolchain specification/channel to explicitly install.
+          # channel: # optional
+          # Comma-separated list of additional components to install.
+          # components: # optional
+          # Inherit all toolchain settings from the rust-toolchain.toml file.
+          # inherit-toolchain: # optional, default is false
+          # Comma-separated list of additional targets to install.
+          targets: x86_64-unknown-linux-gnu
+          # Comma-separated list of target folder paths, relative from the repository root.
+          # target-dirs: # optional, default is target
+          # Profile to install. Defaults to "minimal".
+          # profile: # optional
+      - name: Build
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+      - run: mv target/x86_64-unknown-linux-gnu/release/discord_obs_livebot discord_obs_livebot-x86_64-unknown-linux-gnu
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: x86_64-unknown-linux-gnu
+          path: discord_obs_livebot-x86_64-unknown-linux-gnu
   release:
     needs: [update_version, build_linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-    - name: Download Linux Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: x86_64-unknown-linux-gnu
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ needs.update_version.outputs.new_tag }}
-        files: |
-          discord_obs_livebot-x86_64-unknown-linux-gnu
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: x86_64-unknown-linux-gnu
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.update_version.outputs.new_tag }}
+          files: |
+            discord_obs_livebot-x86_64-unknown-linux-gnu
