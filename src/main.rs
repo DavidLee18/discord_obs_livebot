@@ -24,6 +24,7 @@ async fn get_url(locale: Option<&str>, value: Option<String>) -> Result<String, 
     }
 }
 
+/// get current OBS info
 #[poise::command(
     slash_command,
     name_localized("ko", "정보"),
@@ -51,6 +52,7 @@ async fn info(
     }
 }
 
+/// stop OBS broadcasting
 #[poise::command(
     slash_command,
     name_localized("ko", "중단"),
@@ -83,6 +85,7 @@ async fn stop(
     }
 }
 
+/// switch OBS scene
 #[poise::command(
     slash_command,
     name_localized("ko", "전환"),
