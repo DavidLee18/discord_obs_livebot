@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "discord_obs_livebot"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "poise",
  "serenity",

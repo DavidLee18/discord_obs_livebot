@@ -41,8 +41,11 @@ async fn main() -> Result<(), Error> {
         })
         .build();
 
-    let client = serenity::ClientBuilder::new(token, intents)
+    let mut client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
-        .await;
-    client?.start().await.map_err(|e| Box::new(e) as Error)
+        .await?;
+    if let Err(e) = client.start().await {
+        eprintln!("Error starting a bot: {:?}", e);
+    }
+    Ok(())
 }
