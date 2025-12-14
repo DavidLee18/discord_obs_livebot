@@ -1,20 +1,48 @@
+use std::env;
+
 use ::serenity::all::GuildId;
 use poise::serenity_prelude as serenity;
 
-struct Data {} // User data, which is stored and accessible in all command invocations
+struct Data(); // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-/// Displays your or another user's account creation date
-#[poise::command(slash_command, prefix_command)]
-async fn age(
+#[poise::command(
+    slash_command,
+    name_localized("ko", "정보"),
+    description_localized("ko", "현재 OBS 상태를 볼 수 있습니다")
+)]
+async fn info(
     ctx: Context<'_>,
-    #[description = "Selected user"] user: Option<serenity::User>,
+    #[description = "server location"]
+    #[description_localized("ko", "서버의 위치입니다")]
+    where_: Option<String>,
 ) -> Result<(), Error> {
-    let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
-    ctx.say(response).await?;
-    Ok(())
+    let lit_singil = match ctx.locale() {
+        Some("ko") => env::var("SERVER_SINGIL_KO")?,
+        _ => env::var("SERVER_SINGIL_EN")?,
+    };
+    let lit_cwmc = match ctx.locale() {
+        Some("ko") => env::var("SERVER_CWMC_KO")?,
+        _ => env::var("SERVER_CWMC_EN")?,
+    };
+    let u = where_.unwrap_or_else(|| lit_singil.clone());
+    let loc = if u == lit_singil {
+        "SERVER_SINGIL_URL"
+    } else if u == lit_cwmc {
+        "SERVER_CWMC_URL"
+    } else {
+        return Err("Invalid server location".into());
+    };
+    let location = env::var(loc)?;
+    match reqwest::blocking::get(location)?.error_for_status() {
+        Ok(response) => {
+            let response_text = response.text()?.replace("\\n", "\n");
+            ctx.say(response_text).await?;
+            Ok(())
+        }
+        Err(e) => Err(e.into()),
+    }
 }
 
 #[tokio::main]
@@ -25,7 +53,7 @@ async fn main() -> Result<(), Error> {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![age()],
+            commands: vec![info()],
             ..Default::default()
         })
         .setup(|ctx, _, framework| {
