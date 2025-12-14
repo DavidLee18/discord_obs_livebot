@@ -35,6 +35,7 @@ async fn info(
         return Err("Invalid server location".into());
     };
     let location = env::var(loc)?;
+    println!("Location: {}", location);
     match reqwest::blocking::get(location)?.error_for_status() {
         Ok(response) => {
             let response_text = response.text()?.replace("\\n", "\n");
@@ -64,7 +65,7 @@ async fn main() -> Result<(), Error> {
                     GuildId::new(guild_id.parse()?),
                 )
                 .await?;
-                Ok(Data {})
+                Ok(Data())
             })
         })
         .build();
