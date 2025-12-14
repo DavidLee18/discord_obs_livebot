@@ -34,8 +34,7 @@ async fn info(
     } else {
         return Err("Invalid server location".into());
     };
-    let location = env::var(loc)?;
-    println!("Location: {}", location);
+    let location = format!("http://{}:{}", env::var(loc)?, env::var("SERVER_PORT")?);
     match reqwest::blocking::get(location)?.error_for_status() {
         Ok(response) => {
             let response_text = response.text()?.replace("\\n", "\n");
