@@ -105,6 +105,7 @@ async fn switch(
     );
     match reqwest::Client::new()
         .post(location)
+        .header("Content-Type", "application/json")
         .body(serde_json::to_string(
             &serde_json::json!({ "scene": scene }),
         )?)
