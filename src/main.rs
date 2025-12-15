@@ -70,18 +70,14 @@ async fn stop(
         env::var(get_url(ctx.locale(), where_).await?)?,
         env::var("SERVER_PORT")?
     );
-    match reqwest::Client::new()
-        .delete(location)
-        .send()
-        .await?
-        .error_for_status()
-    {
-        Ok(response) => {
-            let response_text = response.text().await?.replace("\\n", "\n");
+    let res = reqwest::Client::new().delete(location).send().await?;
+    match res.status() {
+        reqwest::StatusCode::OK | reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+            let response_text = res.text().await?.replace("\\n", "\n");
             ctx.say(response_text).await?;
             Ok(())
         }
-        Err(e) => Err(e.into()),
+        _ => Err(format!("Failed to stop OBS broadcasting\nResponse: {:?}", res).into()),
     }
 }
 
