@@ -72,9 +72,22 @@ async fn stop(
     );
     let res = reqwest::Client::new().delete(location).send().await?;
     match res.status() {
-        reqwest::StatusCode::OK | reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+        reqwest::StatusCode::OK => {
             let response_text = res.text().await?.replace("\\n", "\n");
             ctx.say(response_text).await?;
+            Ok(())
+        }
+        reqwest::StatusCode::INTERNAL_SERVER_ERROR => {
+            let response_text = res.text().await?.replace("\\n", "\n");
+            if response_text.contains("OutputNotRunning") {
+                if let Some("ko") = ctx.locale() {
+                    ctx.say("OBS가 방송 중이 아닙니다").await?;
+                } else {
+                    ctx.say("OBS is not broadcasting").await?;
+                }
+            } else {
+                ctx.say(response_text).await?;
+            }
             Ok(())
         }
         _ => Err(format!("Failed to stop OBS broadcasting\nResponse: {:?}", res).into()),
